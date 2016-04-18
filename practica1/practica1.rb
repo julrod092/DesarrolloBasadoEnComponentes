@@ -5,7 +5,6 @@ class Practica1
 
 
   @@url = ''
-  @@profileName = ''
 
   def initialize ()
     puts "Please write a user to cloning a github repository"
