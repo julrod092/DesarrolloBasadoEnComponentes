@@ -5,11 +5,12 @@ class Practica1
 
 
   @@url = ''
+  @@user = ''
 
   def initialize ()
     puts "Please write a user to cloning a github repository"
-    user = gets.chomp
-    @@url = "https://api.github.com/users/#{user}"
+    @@user = gets.chomp
+    @@url = "https://api.github.com/users/#{@@user}"
   end
 
   def callGithubApi ()
@@ -17,12 +18,11 @@ class Practica1
     begin
       getResponseProfile = open(@@url)
       profileJson = JSON.parse(getResponseProfile.read)
-      @@profileName = profileJson["login"]
       getRepos(profileJson["repos_url"])
     rescue OpenURI::HTTPError => error
       response = error.io
       at_exit do
-        puts "Error in request. status #{response.status[0]} :: message #{response.status[1]}"
+        puts "Error in request. status #{response.status[0]} :: message #{response.status[1]}. No existing user."
       end
     end
   end
@@ -31,7 +31,7 @@ class Practica1
     begin
       getResponseRepos = open(url)
       reposJson = JSON.parse(getResponseRepos.read)
-      puts "Github repositories availables with user #{@@profileName}. Select a number"
+      puts "Github repositories availables with user #{@@user}. Select a number"
       $i = 1
       reposJson.each do |repo|
         puts "#{$i} #{repo["name"]}"
