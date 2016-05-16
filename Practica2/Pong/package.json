@@ -1,0 +1,10 @@
+{
+  "name": "Pong",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "amqplib": "^0.4.1",
+    "debug": "~2.2.0",
+    "express": "~4.13.1"
+  }
+}
