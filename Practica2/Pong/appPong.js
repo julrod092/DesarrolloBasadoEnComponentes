@@ -1,40 +1,29 @@
 var express = require('express');
-var amqp = require('amqplib/callback_api');
+var amqp = require('amqplib').connect('amqp://localhost');
 
 var app = express();
 
 app.get('/pong', function (req, res) {
     res.send('Hello World!');
-    connectingAmqp();
 });
 
-app.listen(4000, function () {
-    console.log('Example app listening on port 4000!');
-});
-
-function connectingAmqp() {
-    amqp.connect('amqp://localhost',
-        function (err, conn) {
-            if (null != err) {
-                console.log('RabbitMQ is not started');
-                return;
-            }
-            conn.createChannel(
-                function (err, ch) {
-                    var q = 'hello';
-                    ch.assertQueue(q, {durable: false});
-                    console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", q);
-                    ch.consume(q, function(msg) {
-                        console.log(" [x] Received %s", msg.content.toString());
-                    }, {ack: true});
-                    setTimeout(function (err, ch) {
-                        
-                    })
-                }
-            );
+function reciever() {
+    amqp.then(
+        function (conn) {
+            return conn.createChannel();
+        }
+    ).then(
+        function (channel) {
+            channel.assertQueue('EVENT_CHANNEL', {durable: false});
+            console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", 'EVENT_CHANNEL');
+            return channel.consume('EVENT_CHANNEL', function (msg) {
+                console.log(" [x] Received %s", msg.content.toString());
+            }, {ack: true})
         }
     );
 }
 
-
-module.exports = app;
+app.listen(4000, function () {
+    console.log('Example app listening on port 4000!');
+    reciever();
+});
