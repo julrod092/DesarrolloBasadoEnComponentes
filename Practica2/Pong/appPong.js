@@ -1,9 +1,13 @@
 var express = require('express');
 var amqp = require('amqplib').connect('amqp://localhost');
 
-var app = express();
+var info = {
+  "recived": 0,
+  "responded": 0,
+  "messages": []
+}
 
-app.get('/pong', function (req, res) {
+app.get('/pong/info', function (req, res) {
     res.send('Hello World!');
 });
 
@@ -17,6 +21,9 @@ function reciever() {
             channel.assertQueue('EVENT_CHANNEL', {durable: false});
             console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", 'EVENT_CHANNEL');
             return channel.consume('EVENT_CHANNEL', function (msg) {
+                if (msg){
+
+                }
                 console.log(" [x] Received %s", msg.content.toString());
             }, {ack: true})
         }
