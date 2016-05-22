@@ -3,15 +3,13 @@ var amqp = require('amqplib').connect('amqp://@localhost');
 
 var app = express();
 
-var pong_message = "";
-
 app.get('/ping', function (req, res) {
     sender("PING_MESSAGE").then(
         function (response) {
             if (response) {
-                receiver().then(
-                    function () {
-                        res.send("RESPONSE MESSAGE RECEIVED");
+                messagesFromPongQueue().then(
+                    function (message) {
+                        res.send(message.content.toString());
                     }
                 );
             }
@@ -19,13 +17,25 @@ app.get('/ping', function (req, res) {
     );
 });
 
+function messagesFromPongQueue() {
+    return receiver().then(
+        function (message) {
+            if (!message) {
+                return messagesFromPongQueue();
+            } else {
+                return message;
+            }
+        }
+    );
+}
+
 function sender(word) {
     return amqp.then(
         function (conn) {
             return conn.createChannel();
         }).then(
         function (channel) {
-            channel.assertQueue('PING_CHANNEL', {durable: false});
+            channel.assertQueue('PING_CHANNEL');
             return channel.sendToQueue('PING_CHANNEL', new Buffer(word));
         }
     );
@@ -38,14 +48,16 @@ function receiver() {
         }
     ).then(
         function (channel) {
-            channel.assertQueue('PONG_CHANNEL', {durable: false});
-            return channel.consume('PONG_CHANNEL', function (msg) {
-                console.log(" [x] Received %s", msg.content.toString());
-            }, {ack: true})
+            return channel.assertQueue('PONG_CHANNEL').then(
+                function(){
+                    channel.ackAll();
+                    return channel.get('PONG_CHANNEL');
+                }
+            );
         }
     );
 }
 
 app.listen(3000, function () {
-    console.log('Example app listening on port 3000!');
+    console.log('PingApp listening on port 3000!');
 });

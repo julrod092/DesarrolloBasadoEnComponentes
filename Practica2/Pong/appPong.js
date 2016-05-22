@@ -13,8 +13,11 @@ var info = {
     "messages": []
 };
 
+app.set('json spaces', 4);
+
 app.get('/pong/info', function (req, res) {
-    res.send(JSON.stringify(info, null, 2));
+    res.setHeader('Content-Type', 'application/json');
+    res.json(info);
 });
 
 function receiver() {
@@ -24,27 +27,28 @@ function receiver() {
         }
     ).then(
         function (channel) {
-            channel.assertQueue('PING_CHANNEL', {durable: false});
+            channel.assertQueue('PING_CHANNEL');
             console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", 'PING_CHANNEL');
             return channel.consume('PING_CHANNEL', function (msg) {
                 console.log(" [x] Received %s", msg.content.toString());
                 if (msg !== null){
                     message.msg = msg.content.toString();
+                    info.messages.push(message);
                     info.recived++;
                     sender(message, channel);
                 }
-            }, {ack: true})
+                channel.ackAll();
+            })
         }
     );
 }
 
 function sender(message, channel) {
     setTimeout(function () {
-        channel.assertQueue('PONG_CHANNEL', {durable: false});
+        channel.assertQueue('PONG_CHANNEL');
         var received = channel.sendToQueue('PONG_CHANNEL', new Buffer('PONG_MESSAGE'));
         if (received) {
             message.responded = true;
-            info.messages.push(message);
             info.responded++;
         }
         message = { "responded": false, "msg": "" };
