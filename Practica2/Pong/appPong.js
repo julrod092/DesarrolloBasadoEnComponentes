@@ -3,7 +3,7 @@ var amqp = require('amqplib').connect('amqp://localhost');
 var app = express();
 
 var message = {
-    "toRespond": false,
+    "responded": false,
     "msg": ""
 };
 
@@ -14,7 +14,7 @@ var info = {
 };
 
 app.get('/pong/info', function (req, res) {
-    res.send('Hello World!');
+    res.send(JSON.stringify(info, null, 2));
 });
 
 function receiver() {
@@ -29,50 +29,26 @@ function receiver() {
             return channel.consume('PING_CHANNEL', function (msg) {
                 console.log(" [x] Received %s", msg.content.toString());
                 if (msg !== null){
-                    var newMessage = message;
-                    newMessage.msg = msg.content.toString();
-                    newMessage.toRespond = badWords(newMessage);
+                    message.msg = msg.content.toString();
                     info.recived++;
-                    sender(newMessage, channel);
+                    sender(message, channel);
                 }
             }, {ack: true})
         }
     );
 }
 
-function sender(msg, channel) {
-    if (msg.toRespond) {
-        channel.assertQueue('ERROR_CHANNEL', {durable: false});
-        console.log('Sending wrong message');
-        channel.sendToQueue('ERROR_CHANNEL', new Buffer('WRONG_MESSAGE: ' + msg.msg));
-    } else {
-        setTimeout(function () {
-            channel.assertQueue('PONG_CHANNEL', {durable: false})
-            console.log('Sending good message');
-            channel.sendToQueue('PONG_CHANNEL', new Buffer('PONG_MESSAGE'));
-        }, 2000);
-    }
-}
-
-function badWords(msg) {
-    var badWordsBool = true;
-    var message = msg.msg.toLowerCase();
-    var messageArray = message.split(" ");
-    messageArray.forEach(
-        function (word) {
-            switch (word) {
-                case "ping":
-                    badWordsBool = false;
-                    break;
-                case "ping_message":
-                    badWordsBool = false;
-                    break;
-                default:
-                    break;
-            }
+function sender(message, channel) {
+    setTimeout(function () {
+        channel.assertQueue('PONG_CHANNEL', {durable: false});
+        var received = channel.sendToQueue('PONG_CHANNEL', new Buffer('PONG_MESSAGE'));
+        if (received) {
+            message.responded = true;
+            info.messages.push(message);
+            info.responded++;
         }
-    );
-    return badWordsBool;
+        message = { "responded": false, "msg": "" };
+    }, 2000);
 }
 
 app.listen(3001, function () {
